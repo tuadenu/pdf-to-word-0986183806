@@ -71,15 +71,16 @@ def convert_one_pdf(
     output_dir: Path,
     use_ocr_fallback: bool,
     ocr_lang: str,
+    preserve_layout: bool = True,
 ) -> ConvertResult:
     output_path = output_dir / f"{pdf_path.stem}.docx"
 
     try:
         if has_embedded_text(pdf_path):
             converter = Converter(str(pdf_path))
-            converter.convert(str(output_path), start=0, end=None)
+            converter.convert(str(output_path), start=0, end=None, preserve_layout=preserve_layout)
             converter.close()
-            return ConvertResult(pdf_path.name, True, "Converted with embedded text extraction")
+            return ConvertResult(pdf_path.name, True, "Trich xuat tu text co san")
 
         if use_ocr_fallback:
             ocr_pdf_to_docx(pdf_path, output_path, ocr_lang)
@@ -107,6 +108,7 @@ class App:
         self.ocr_var = tk.BooleanVar(value=True)
         self.ocr_lang_var = tk.StringVar(value="eng+vie+chi_sim+jpn")
         self.skip_existing_var = tk.BooleanVar(value=False)
+        self.preserve_layout_var = tk.BooleanVar(value=True)
         self.status_var = tk.StringVar(value="San sang")
         self.summary_var = tk.StringVar(value="Chua chon tep")
         self.progress_var = tk.DoubleVar(value=0)
@@ -198,8 +200,15 @@ class App:
         )
         self.skip_checkbox.grid(row=4, column=0, columnspan=2, sticky="w", pady=(2, 8))
 
+        self.preserve_checkbox = ttk.Checkbutton(
+            settings_card,
+            text="Giu dinh dang (font, trang, bo cuc)",
+            variable=self.preserve_layout_var,
+        )
+        self.preserve_checkbox.grid(row=5, column=0, columnspan=2, sticky="w", pady=(2, 8))
+
         lang_row = ttk.Frame(settings_card, style="Card.TFrame")
-        lang_row.grid(row=5, column=0, columnspan=3, sticky="w", pady=(2, 0))
+        lang_row.grid(row=6, column=0, columnspan=3, sticky="w", pady=(2, 0))
         ttk.Label(lang_row, text="Ngon ngu OCR:").pack(side="left")
         self.lang_entry = ttk.Entry(lang_row, textvariable=self.ocr_lang_var, width=12)
         self.lang_entry.pack(side="left", padx=(6, 8))
@@ -305,6 +314,7 @@ class App:
         self.output_button.configure(state=state)
         self.ocr_checkbox.configure(state=state)
         self.skip_checkbox.configure(state=state)
+        self.preserve_checkbox.configure(state=state)
         self.lang_entry.configure(state=state)
         self.stop_button.configure(state="disabled" if enabled else "normal")
         self.is_running = not enabled
@@ -437,7 +447,7 @@ class App:
 
         worker = threading.Thread(
             target=self._run_batch_conversion,
-            args=(input_dir, output_dir, pdf_files, self.ocr_var.get(), self.ocr_lang_var.get().strip() or "eng"),
+            args=(input_dir, output_dir, pdf_files, self.ocr_var.get(), self.ocr_lang_var.get().strip() or "eng", self.preserve_layout_var.get()),
             daemon=True,
         )
         self.current_thread = worker
@@ -450,6 +460,7 @@ class App:
         pdf_files: list[Path],
         use_ocr_fallback: bool,
         ocr_lang: str,
+        preserve_layout: bool,
     ) -> None:
         self._log("Dang chuyen doi...")
         self._log(f"Dau vao: {input_dir}")
@@ -468,6 +479,7 @@ class App:
                 output_dir,
                 use_ocr_fallback=use_ocr_fallback,
                 ocr_lang=ocr_lang,
+                preserve_layout=preserve_layout,
             )
 
             if result.success:
