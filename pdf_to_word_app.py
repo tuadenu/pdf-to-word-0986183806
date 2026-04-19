@@ -105,7 +105,7 @@ class App:
         self.input_dir_var = tk.StringVar()
         self.output_dir_var = tk.StringVar()
         self.ocr_var = tk.BooleanVar(value=True)
-        self.ocr_lang_var = tk.StringVar(value="eng")
+        self.ocr_lang_var = tk.StringVar(value="eng+vie+chi_sim+jpn")
         self.skip_existing_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="San sang")
         self.summary_var = tk.StringVar(value="Chua chon tep")
