@@ -203,7 +203,7 @@ class App:
         ttk.Label(lang_row, text="Ngon ngu OCR:").pack(side="left")
         self.lang_entry = ttk.Entry(lang_row, textvariable=self.ocr_lang_var, width=12)
         self.lang_entry.pack(side="left", padx=(6, 8))
-        ttk.Label(lang_row, text="Vi du: eng, vie, eng+vie", style="Sub.TLabel").pack(side="left")
+        ttk.Label(lang_row, text="Vi du: eng, vie, chi_sim, jpn, kor (hoac chi_sim+jpn)", style="Sub.TLabel").pack(side="left")
 
         settings_card.columnconfigure(1, weight=1)
 

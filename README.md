@@ -30,7 +30,13 @@ brew install tesseract-lang
 Sau do co the dung ngon ngu OCR:
 - `eng` (English)
 - `vie` (Vietnamese)
-- `eng+vie` (ket hop)
+- `chi_sim` (Simplified Chinese - 简体中文)
+- `chi_tra` (Traditional Chinese - 繁體中文)
+- `jpn` (Japanese - 日本語)
+- `kor` (Korean - 한국어)
+- `rus` (Russian - Русский)
+
+Ket hop nhieu ngon ngu: `eng+vie+jpn` (English + Vietnamese + Japanese)
 
 ## Cai dat
 
