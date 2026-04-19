@@ -460,7 +460,7 @@ class App:
         for idx, pdf in enumerate(pdf_files):
             if self.stop_requested:
                 stopped = True
-            remaining_files = pdf_files[idx:]
+                remaining_files = pdf_files[idx:]
                 break
 
             result = convert_one_pdf(
