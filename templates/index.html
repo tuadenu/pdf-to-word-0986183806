@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Word Converter</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 520px;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 15px;
+            margin-bottom: 36px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #667eea;
+            background: #f5f3ff;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-zone .drop-text {
+            pointer-events: none;
+        }
+
+        .drop-zone .drop-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone .drop-label {
+            font-size: 15px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .drop-zone .drop-hint {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .file-info {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #15803d;
+        }
+
+        .file-info.visible {
+            display: flex;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary:not(:disabled):hover {
+            opacity: 0.9;
+        }
+
+        .progress-wrap {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-wrap.visible {
+            display: block;
+        }
+
+        .progress-bar-bg {
+            background: #e5e7eb;
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 9999px;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.visible {
+            display: block;
+        }
+
+        .message.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+
+        .message.success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+        }
+
+        .features {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .feature-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">📄➡️📝</div>
+        <h1>PDF to Word Converter</h1>
+        <p class="subtitle">Convert your PDF files to editable Word documents instantly.</p>
+
+        <form id="convertForm">
+            <div class="drop-zone" id="dropZone">
+                <input type="file" id="fileInput" name="file" accept=".pdf">
+                <div class="drop-text">
+                    <div class="drop-icon">☁️</div>
+                    <div class="drop-label">Drop your PDF here or <span style="color:#667eea">browse</span></div>
+                    <div class="drop-hint">Maximum file size: 50 MB</div>
+                </div>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <span>📄</span>
+                <span id="fileName"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="convertBtn" disabled>
+                Convert to Word
+            </button>
+        </form>
+
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-bar-bg">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-label" id="progressLabel">Converting…</div>
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <div class="features">
+            <span class="feature-badge">✅ Free to use</span>
+            <span class="feature-badge">🔒 Files deleted after conversion</span>
+            <span class="feature-badge">⚡ Fast conversion</span>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const convertBtn = document.getElementById('convertBtn');
+        const convertForm = document.getElementById('convertForm');
+        const progressWrap = document.getElementById('progressWrap');
+        const progressBar = document.getElementById('progressBar');
+        const progressLabel = document.getElementById('progressLabel');
+        const messageEl = document.getElementById('message');
+
+        function showFile(file) {
+            if (file.size > 50 * 1024 * 1024) {
+                showMessage('❌ File exceeds the 50 MB size limit. Please choose a smaller file.', 'error');
+                return;
+            }
+            fileName.textContent = file.name;
+            fileInfo.classList.add('visible');
+            convertBtn.disabled = false;
+            hideMessage();
+        }
+
+        function hideMessage() {
+            messageEl.className = 'message';
+            messageEl.textContent = '';
+        }
+
+        function showMessage(text, type) {
+            messageEl.className = `message ${type} visible`;
+            messageEl.textContent = text;
+        }
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) showFile(fileInput.files[0]);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                showFile(file);
+            } else {
+                showMessage('Please drop a valid PDF file.', 'error');
+            }
+        });
+
+        convertForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            convertBtn.disabled = true;
+            progressWrap.classList.add('visible');
+            progressBar.style.width = '0%';
+            progressLabel.textContent = 'Uploading…';
+            hideMessage();
+
+            // Animate progress bar during conversion
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress < 85) {
+                    progress += Math.random() * 8;
+                    progressBar.style.width = Math.min(progress, 85) + '%';
+                    if (progress > 30) progressLabel.textContent = 'Converting…';
+                }
+            }, 400);
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                clearInterval(interval);
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Conversion failed');
+                }
+
+                progressBar.style.width = '100%';
+                progressLabel.textContent = 'Done!';
+
+                // Trigger download
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const disposition = response.headers.get('Content-Disposition');
+                let downloadName = file.name.replace(/\.pdf$/i, '.docx');
+                if (disposition) {
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    if (match) downloadName = match[1];
+                }
+                a.href = url;
+                a.download = downloadName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                showMessage('✅ Conversion successful! Your download should start automatically.', 'success');
+            } catch (err) {
+                clearInterval(interval);
+                progressWrap.classList.remove('visible');
+                showMessage('❌ ' + err.message, 'error');
+            } finally {
+                convertBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
