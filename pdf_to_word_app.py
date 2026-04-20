@@ -109,7 +109,9 @@ class App:
         self.ocr_lang_var = tk.StringVar(value="eng+vie+chi_sim+jpn")
         self.skip_existing_var = tk.BooleanVar(value=False)
         self.preserve_layout_var = tk.BooleanVar(value=True)
+        self.use_file_mode_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="San sang")
+        self.selected_files: list[Path] = []
         self.summary_var = tk.StringVar(value="Chua chon tep")
         self.progress_var = tk.DoubleVar(value=0)
         self.total_files = 0
@@ -174,41 +176,60 @@ class App:
 
         ttk.Label(settings_card, text="Cai dat", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 10))
 
-        ttk.Label(settings_card, text="Thu muc dau vao (PDF):", width=20).grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
-        self.input_entry = ttk.Entry(settings_card, textvariable=self.input_dir_var)
-        self.input_entry.grid(row=1, column=1, sticky="ew", pady=4)
-        self.input_button = ttk.Button(settings_card, text="Chon", command=self._choose_input_dir)
-        self.input_button.grid(row=1, column=2, sticky="ew", padx=(8, 0), pady=4)
+        # Mode selection: Directory or Files
+        mode_frame = ttk.Frame(settings_card, style="Card.TFrame")
+        mode_frame.grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 12))
+        self.mode_dir_radio = ttk.Radiobutton(mode_frame, text="Chuyen toan bo thu muc", variable=self.use_file_mode_var, value=False, command=self._on_mode_changed)
+        self.mode_dir_radio.pack(side="left", padx=(0, 12))
+        self.mode_file_radio = ttk.Radiobutton(mode_frame, text="Chon file le (Ctrl/Cmd + Click)", variable=self.use_file_mode_var, value=True, command=self._on_mode_changed)
+        self.mode_file_radio.pack(side="left")
 
-        ttk.Label(settings_card, text="Thu muc dau ra (DOCX):", width=20).grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
+        ttk.Label(settings_card, text="Thu muc dau vao (PDF):", width=20).grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
+        self.input_entry = ttk.Entry(settings_card, textvariable=self.input_dir_var)
+        self.input_entry.grid(row=2, column=1, sticky="ew", pady=4)
+        self.input_button = ttk.Button(settings_card, text="Chon", command=self._choose_input_dir)
+        self.input_button.grid(row=2, column=2, sticky="ew", padx=(8, 0), pady=4)
+
+        # File selection section
+        self.file_select_frame = ttk.Frame(settings_card, style="Card.TFrame")
+        self.file_select_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.file_select_button = ttk.Button(self.file_select_frame, text="Chon file PDF", command=self._choose_pdf_files)
+        self.file_select_button.pack(side="left", padx=(0, 8))
+        self.file_clear_button = ttk.Button(self.file_select_frame, text="Xoa danh sach", command=self._clear_file_selection)
+        self.file_clear_button.pack(side="left", padx=(0, 8))
+        self.file_count_label = ttk.Label(self.file_select_frame, text="0 file", style="Sub.TLabel")
+        self.file_count_label.pack(side="left")
+        self.file_select_frame.grid_remove()  # Hide initially
+
+        ttk.Label(settings_card, text="Thu muc dau ra (DOCX):", width=20).grid(row=4, column=0, sticky="w", padx=(0, 8), pady=4)
         self.output_entry = ttk.Entry(settings_card, textvariable=self.output_dir_var)
-        self.output_entry.grid(row=2, column=1, sticky="ew", pady=4)
+        self.output_entry.grid(row=4, column=1, sticky="ew", pady=4)
         self.output_button = ttk.Button(settings_card, text="Chon", command=self._choose_output_dir)
-        self.output_button.grid(row=2, column=2, sticky="ew", padx=(8, 0), pady=4)
+        self.output_button.grid(row=4, column=2, sticky="ew", padx=(8, 0), pady=4)
 
         self.ocr_checkbox = ttk.Checkbutton(
             settings_card,
             text="Bat OCR du phong cho PDF scan",
             variable=self.ocr_var,
         )
-        self.ocr_checkbox.grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 4))
+        self.ocr_checkbox.grid(row=5, column=0, columnspan=2, sticky="w", pady=(8, 4))
 
         self.skip_checkbox = ttk.Checkbutton(
             settings_card,
             text="Bo qua file DOCX da ton tai",
             variable=self.skip_existing_var,
         )
-        self.skip_checkbox.grid(row=4, column=0, columnspan=2, sticky="w", pady=(2, 8))
+        self.skip_checkbox.grid(row=6, column=0, columnspan=2, sticky="w", pady=(2, 8))
 
         self.preserve_checkbox = ttk.Checkbutton(
             settings_card,
             text="Giu dinh dang (font, trang, bo cuc)",
             variable=self.preserve_layout_var,
         )
-        self.preserve_checkbox.grid(row=5, column=0, columnspan=2, sticky="w", pady=(2, 8))
+        self.preserve_checkbox.grid(row=7, column=0, columnspan=2, sticky="w", pady=(2, 8))
 
         lang_row = ttk.Frame(settings_card, style="Card.TFrame")
-        lang_row.grid(row=6, column=0, columnspan=3, sticky="w", pady=(2, 0))
+        lang_row.grid(row=8, column=0, columnspan=3, sticky="w", pady=(2, 0))
         ttk.Label(lang_row, text="Ngon ngu OCR:").pack(side="left")
         self.lang_entry = ttk.Entry(lang_row, textvariable=self.ocr_lang_var, width=12)
         self.lang_entry.pack(side="left", padx=(6, 8))
@@ -266,10 +287,38 @@ class App:
         self.results_tree.tag_configure("ok", foreground="#0b6a33")
         self.results_tree.tag_configure("fail", foreground="#a11e1e")
 
+    def _on_mode_changed(self) -> None:
+        if self.use_file_mode_var.get():
+            self.input_entry.configure(state="disabled")
+            self.input_button.configure(state="disabled")
+            self.file_select_frame.grid()
+        else:
+            self.input_entry.configure(state="normal")
+            self.input_button.configure(state="normal")
+            self.file_select_frame.grid_remove()
+            self._clear_file_selection()
+
     def _choose_input_dir(self) -> None:
         path = filedialog.askdirectory(title="Chon thu muc chua file PDF")
         if path:
             self.input_dir_var.set(path)
+
+    def _choose_pdf_files(self) -> None:
+        files = filedialog.askopenfilenames(
+            title="Chon file PDF (Ctrl/Cmd + Click de chon nhieu file)",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+        )
+        if files:
+            self.selected_files = [Path(f) for f in files]
+            self._update_file_count()
+
+    def _clear_file_selection(self) -> None:
+        self.selected_files.clear()
+        self._update_file_count()
+
+    def _update_file_count(self) -> None:
+        count = len(self.selected_files)
+        self.file_count_label.configure(text=f"{count} file" if count != 1 else "1 file")
 
     def _choose_output_dir(self) -> None:
         path = filedialog.askdirectory(title="Chon thu muc luu file DOCX")
@@ -308,14 +357,20 @@ class App:
     def _set_controls_enabled(self, enabled: bool) -> None:
         state = "normal" if enabled else "disabled"
         self.start_button.configure(state=state)
-        self.input_entry.configure(state=state)
+        self.mode_dir_radio.configure(state=state)
+        self.mode_file_radio.configure(state=state)
         self.output_entry.configure(state=state)
-        self.input_button.configure(state=state)
         self.output_button.configure(state=state)
         self.ocr_checkbox.configure(state=state)
         self.skip_checkbox.configure(state=state)
         self.preserve_checkbox.configure(state=state)
         self.lang_entry.configure(state=state)
+        if self.use_file_mode_var.get():
+            self.file_select_button.configure(state=state)
+            self.file_clear_button.configure(state=state)
+        else:
+            self.input_entry.configure(state=state)
+            self.input_button.configure(state=state)
         self.stop_button.configure(state="disabled" if enabled else "normal")
         self.is_running = not enabled
 
@@ -416,19 +471,35 @@ class App:
         if self.is_running:
             return
 
-        paths = self._validate_paths()
-        if not paths:
+        output_dir = Path(self.output_dir_var.get().strip())
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
+        if not output_dir.is_dir():
+            messagebox.showerror("Dau ra khong hop le", "Vui long chon thu muc dau ra hop le.")
             return
 
-        input_dir, output_dir = paths
-        pdf_files = sorted([p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"])
+        # Get PDF files based on mode
+        if self.use_file_mode_var.get():
+            if not self.selected_files:
+                messagebox.showinfo("Khong co tep", "Vui long chon it nhat 1 file PDF.")
+                return
+            pdf_files = sorted(self.selected_files)
+        else:
+            paths = self._validate_paths()
+            if not paths:
+                return
+            input_dir, _ = paths
+            pdf_files = sorted([p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"])
 
         # Filter out files if skip_existing is enabled
         if self.skip_existing_var.get():
             pdf_files = [p for p in pdf_files if not (output_dir / f"{p.stem}.docx").exists()]
 
         if not pdf_files:
-            messagebox.showinfo("Khong co tep", "Khong tim thay file PDF trong thu muc dau vao.")
+            if self.use_file_mode_var.get():
+                messagebox.showinfo("Khong co tep", "Tat ca file da duoc chuyen doi hoac bi bo qua.")
+            else:
+                messagebox.showinfo("Khong co tep", "Khong tim thay file PDF trong thu muc dau vao.")
             self.status_var.set("San sang")
             self.progress_var.set(0)
             self.summary_var.set("Chua chon tep")
@@ -447,7 +518,7 @@ class App:
 
         worker = threading.Thread(
             target=self._run_batch_conversion,
-            args=(input_dir, output_dir, pdf_files, self.ocr_var.get(), self.ocr_lang_var.get().strip() or "eng", self.preserve_layout_var.get()),
+            args=(output_dir, output_dir, pdf_files, self.ocr_var.get(), self.ocr_lang_var.get().strip() or "eng", self.preserve_layout_var.get()),
             daemon=True,
         )
         self.current_thread = worker
